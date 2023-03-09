@@ -1,0 +1,353 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#define NMAX 10007
+void adaugare_mem(int col, int lin, int ****mat_pointer, int k, int **s_pointer)
+{
+	int i, j;
+	int ***mat, *s;
+	mat = (int ***)realloc(*mat_pointer, (k + 1) * sizeof(int**));
+	s = (int *)realloc(*s_pointer, (k + 1)* sizeof(int));
+	s[k] = 0;
+
+	// Alocare linii si coloane
+	mat[k] = (int**)calloc(lin,sizeof(int*));
+	for(i = 0; i < lin; i++)
+		mat[k][i] = (int*)calloc(col,sizeof(int));
+	///citirea elementelor
+	for(i = 0;i < lin; i++){
+	 	for(j = 0;j < col; j++){
+			scanf("%d", &mat[k][i][j]);
+			s[k] = s[k] + mat[k][i][j];
+			s[k]=s[k]%NMAX;
+			if(s[k]<0)
+			s[k]+=NMAX;
+		}
+	}
+	*mat_pointer = mat;
+	*s_pointer = s;
+}
+void op_inmultire(int **a, int **b, int sz)
+{
+    int **res;
+    res = calloc(sz, sizeof(int *));
+    for (int i = 0; i < sz; i++)
+        res[i] = calloc(sz, sizeof(int));
+	///algoritmul de inmmultire a doua matrice patratice	
+    for (int i = 0; i < sz; i++) {
+        for (int j = 0; j < sz; j++) {
+            for (int k = 0; k < sz; k++) {
+                res[i][j] += a[i][k] * b[k][j];
+                res[i][j] = res[i][j] % NMAX;
+            }
+            if (res[i][j] < 0)
+                res[i][j] = res[i][j] + NMAX;
+        }
+    }
+    for (int i = 0; i < sz; i++)
+        for (int j = 0; j < sz; j++)
+            a[i][j] = res[i][j];
+	///eliberarea memoriei utilizate pentru calcul prin matricea auxiliara		
+    for (int i = 0; i < sz; i++)
+        free(res[i]);
+    free(res);
+}
+void ridicare_matrice(int ***mat, int k, int *vl, int *vc, int *s)
+{
+    int poz, pw;
+    scanf("%d%d", &poz, &pw);
+	///verificarea tuturor cerintelor pentru a efectua ridicarea
+    if (poz > k - 1 || poz < 0) {
+        printf("No matrix with the given index\n");
+        return;
+    }
+    if (pw == 0) {
+        for (int i = 0; i < vl[poz]; i++) {
+            for (int j = 0; j < vc[poz]; j++)
+                mat[poz][i][j] = 0;
+            mat[poz][i][i] = 1;
+        }
+    }
+    if (pw < 0) {
+        printf("Power should be positive\n");
+        return;
+    }
+    if (vl[poz] != vc[poz]) {
+        printf("Cannot perform matrix multiplication\n");
+        return;
+    }
+    if (pw == 1)
+        return;
+    int sz = vl[poz];
+    int **tempor = mat[poz];
+    pw--;
+    while (pw) {
+        if (pw % 2 == 0) {
+            op_inmultire(tempor, tempor, sz);
+            pw /= 2;
+        } else {
+            op_inmultire(tempor, mat[poz], sz);
+            pw--;
+        }
+    }
+    mat[poz] = tempor;
+	s[poz] = 0;
+	for(int i=0;i<vl[poz];i++){
+		for(int j=0;j<vc[poz];j++){
+		s[poz]+=mat[poz][i][j];
+			s[poz]=s[poz]%NMAX;
+			if(s[poz]<0){
+				s[poz]+=NMAX;
+			}	
+		}
+	}
+
+}
+
+int main (void)
+{
+	int ***mat, col, lin, k = 0, a, *vl, *vc, i, j, *s,ok=0;
+	char command;
+	///alocarea din oficiu cu o pozitie pentru fiecare vector utilizat
+	mat=(int***)malloc(1 *sizeof(int**));
+	s = (int*)malloc(1 * sizeof(int));
+	vl=(int*)malloc(1 * sizeof(int));
+	vc=(int*)malloc(1 * sizeof(int));
+	scanf("%c",&command);
+	while(1)
+	{
+		ok=0;
+		if(command == 'Q')
+			break;
+		if(command == 'L')
+		{	
+			///realocarea pentru o noua pozitie in vectorii folositi
+			ok=1;	
+			scanf("%d%d", &lin, &col);
+			vl=(int *)realloc(vl,(k+1) * sizeof(int));
+			vc=(int *)realloc(vc,(k+1) * sizeof(int));
+			vl[k] = lin;
+			vc[k] = col;
+			adaugare_mem(col, lin, &mat, k, &s);
+			k++;
+		}
+		if(command == 'D')
+		{
+			ok=1;
+			scanf("%d",&a);
+			if(a>k-1 || a < 0)
+			printf("No matrix with the given index\n");
+			else
+			printf("%d %d\n",vl[a],vc[a]);
+			
+		}
+		if(command == 'P')///afisarea matricelor
+		{
+			ok=1;
+			scanf("%d",&a);
+			if(a>k -1 || a < 0)
+			{printf("No matrix with the given index\n");}
+			else{
+			for(i=0;i<vl[a];i++){
+				for(j=0;j<vc[a];j++)
+				printf("%d ",mat[a][i][j]);
+				printf("\n");	   
+			}
+			}
+
+		}
+		if(command == 'M')///inmultirea matricelor
+		{
+			ok=1;
+			int mat1,mat2;
+			///verificarea cerintelor pentru a realiza inmultirea
+			scanf("%d%d",&mat1,&mat2);
+			if(mat1>k-1 || mat2>k-1 || mat1 < 0 || mat2 < 0)
+			printf("No matrix with the given index\n");
+			else{  
+			if(vc[mat1]!=vl[mat2])
+			printf("Cannot perform matrix multiplication\n");
+			else{
+				mat=realloc(mat,(k+1)* sizeof(int**));
+				mat[k]=(int**)calloc(vl[mat1],sizeof(int*));
+				for(i=0;i<vl[mat1];i++)
+				mat[k][i]=(int*)calloc(vc[mat2],sizeof(int));
+				vl=(int *)realloc(vl,(k+1) * sizeof(int));
+				vc=(int *)realloc(vc,(k+1) * sizeof(int));
+				vl[k]=vl[mat1];
+				vc[k]=vc[mat2];
+				///am realizat inmultirea a 2 matrice
+				///am incarcat in noua pozitie creata in vectorul de matrice
+				for(i=0;i<vl[mat1];i++){
+					for(j=0;j<vc[mat2];j++){
+						mat[k][i][j]=0;
+						for(int y=0;y<vc[mat1];y++){
+							mat[k][i][j]+= mat[mat1][i][y] * mat[mat2][y][j];	 
+						mat[k][i][j] %= NMAX;
+						if(mat[k][i][j] < 0)
+							mat[k][i][j] += NMAX;
+					}
+				}
+				}
+				s = (int*)realloc(s, (k + 1)* sizeof(int));
+				s[k] = 0;
+				for(i=0;i<vl[mat1];i++){
+					for(j=0;j<vc[mat2];j++){
+						s[k]+=mat[k][i][j];
+					s[k]=s[k]%NMAX;
+					if(s[k]<0){
+					s[k]+=NMAX;
+					}	
+				}
+				}
+				k++;  	
+		}
+		}
+		}
+		if(command == 'T'){
+			ok=1;
+			int poz;
+			scanf("%d",&poz);
+			if(poz < 0 || poz > k-1)
+				printf("No matrix with the given index\n");
+			else{
+			int **cop1;
+			cop1=(int**)malloc(vc[poz] * sizeof(int*));
+			for(i=0;i < vc[poz];i++)
+			cop1[i]=malloc(vl[poz] * sizeof(int));
+			for(i=0;i<vc[poz];i++)
+				for(j=0;j<vl[poz];j++)
+					cop1[i][j]=mat[poz][j][i];
+			for(i = 0; i < vl[poz]; i++)
+				free(mat[poz][i]);
+			///copie in care am realizat transpusa
+			free(mat[poz]);
+			mat[poz]=cop1;
+			int aux;
+			aux=vl[poz];
+			vl[poz]=vc[poz];
+			vc[poz]=aux; 
+			}		  
+		}
+		if(command == 'O')
+		{
+			ok=1;	
+			for(int z=0; z < k-1; z++){
+				for(int p=z+1; p < k; p++){
+					if(s[z] > s[p])
+					{
+						///realizez interschimbarea 
+						///interschimbarea pentru toti vectorii utilizati
+						int aux;
+						int **aux1;
+						aux1 = mat[z];
+						mat[z] = mat[p];
+						mat[p] = aux1;		  	  
+						aux = s[z];
+						s[z] = s[p];
+						s[p] = aux;
+						aux = vl[z];
+						vl[z] = vl[p];
+						vl[p] = aux;
+						aux = vc[z];
+						vc[z] = vc[p];
+						vc[p] = aux;
+					}
+					
+				}
+				
+			}	
+		}
+		if(command == 'C'){
+			ok=1;                                                                  
+			int indice,nrl,nrc;
+			scanf("%d",&indice);
+			if(indice > k-1 || indice < 0)
+				printf("No matrix with the given index\n");
+			else{	
+			scanf("%d",&nrl);
+			int *v1=(int*)malloc(nrl * sizeof(int));
+			for(i = 0; i < nrl; i++)
+				scanf("%d",&v1[i]);
+			scanf("%d",&nrc);
+			int *v2=(int*)malloc(nrc * sizeof(int));
+			for(i = 0; i < nrc; i++)
+				scanf("%d",&v2[i]);
+			int **temp;
+			temp=(int**)malloc(nrl * sizeof(int*));
+			for( i = 0; i < nrl; i++)
+				temp[i]=malloc(nrc * sizeof(int));
+			///am construit o matrice cu elementele cerute	
+			for( i = 0; i < nrl; i++){
+				for( j = 0; j < nrc; j++){
+					temp[i][j]=mat[indice][v1[i]][v2[j]];
+				}
+			}	
+			for(i=0;i<vl[indice];i++)
+				free(mat[indice][i]);
+			free(mat[indice]);
+			///matricea ceruta am introdusa in locul celei initiale
+			mat[indice]=temp;
+			vl[indice]=nrl;
+			vc[indice]=nrc;
+			s[indice]=0;
+			for( i = 0; i < nrl; i++){
+				for(j = 0; j < nrc; j++){
+					s[indice] += mat[indice][i][j];
+					s[indice] %= NMAX;
+					if(s[indice] < 0)
+						s[indice] += NMAX;
+				}
+			}
+			free(v1);
+			free(v2);
+			}
+		}
+		if( command == 'R'){
+			ok=1;
+			ridicare_matrice(mat, k, vl, vc, s);
+		}
+		if( command == 'F'){
+			ok=1;
+			int x;
+			scanf("%d",&x);
+			if(x > k-1 || x < 0){
+				printf("No matrix with the given index\n");
+			}
+			else{
+				for(i=0 ; i<vl[x];i++)
+				free (mat[x][i]);
+				free(mat[x]);
+				///am eliberat spatiul matricei supusa eliminarii
+				///am mutat elementele prin suprascriere la stanga
+				for( i = x; i < k-1; i++)
+				{mat[i]=mat[i+1];
+				s[i]=s[i+1];
+				vl[i]=vl[i+1];
+				vc[i]=vc[i+1];
+				}
+				k--;
+			}
+		}
+		///daca nu am citit nicio comanda
+		if(ok==0)
+		printf("Unrecognized command\n");
+		do {
+			///sar peste elementele ramase ale unei comenzi invalide
+			scanf("%c",&command);
+		} while (strchr("0123456789\n ", command) != NULL);
+	}
+	///eliberez tot spatiul alocat
+	for( i = 0;i < k; i++){
+		for( j = 0; j < vl[i]; j++){
+			free(mat[i][j]);
+
+		}
+		free(mat[i]);
+	}
+	free(mat);
+	free(vl);
+	free(vc);
+	free(s);
+	return 0;
+}
